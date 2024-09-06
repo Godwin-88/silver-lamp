@@ -1,0 +1,560 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+
+```{r}
+library(tidyverse)
+library(xts)
+library(plm)
+
+```
+
+```{r}
+library(readxl)
+ESG <- read_excel("/home/ed/Downloads/ESG.xlsx")
+View(ESG)
+
+```
+
+```{r}
+head(ESG)
+```
+```{r}
+colnames(ESG)
+```
+
+
+```{r}
+ESG$Year <- as.numeric(ESG$Year)
+```
+
+
+```{r}
+# Assuming your data is structured correctly and named 'data'
+
+# Corrected ggplot2 visualization with lines
+ggplot(ESG, aes(x = Year, y = ROA, color = Company)) +
+  geom_line(size = 1.2) +  # Add lines to show trends
+  geom_point(size = 3) +   # Optional: Add points at each year for clarity
+  labs(title = "Return on Assets (ROA) Over Time", 
+       x = "Year", 
+       y = "Return on Assets",
+       color = "Company") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))  # Centering the title
+
+
+
+```
+
+```{r}
+# Check if ROA is numeric
+str(ESG)
+
+```
+
+
+```{r}
+sum(is.na(ESG))  # This will show how many NAs are present
+
+```
+
+```{r}
+library(ggplot2)
+
+ggplot(ESG, aes(x = Year, y = ROA)) +
+  geom_line(aes(color = Company), size = 1) +
+  facet_wrap(~ Company, scales = "free_y") +  # Create a separate plot for each company
+  labs(title = "Return on Assets (ROA) Over Time by Company", 
+       x = "Year", y = "ROA") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"  # Removes the legend since each facet is for a single company
+  )
+
+```
+```{r}
+ggplot(ESG, aes(x = Year, y = ROE)) +
+  geom_line(aes(color = Company), size = 1) +
+  facet_wrap(~ Company, scales = "free_y") +  # Create a separate plot for each company
+  labs(title = "Return on Equity) Over Time by Company", 
+       x = "Year", y = "ROE") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = "none"  # Removes the legend since each facet is for a single company
+  )
+
+```
+```{r}
+# Convert data into long format for heatmap plotting
+library(reshape2)
+
+heatmap_data <- melt(ESG, id.vars = c("Company", "Year"), 
+                     measure.vars = "ROA", variable.name = "Variable")
+
+# Heatmap for Dividend Yield
+ggplot(ESG, aes(x = Year, y = Company, fill = DIVIDENDYIELD)) +
+  geom_tile() +
+  scale_fill_gradient(low = "green", high = "red") +
+  labs(title = "Heatmap of Dividend Yield Over Time by Company",
+       x = "Year", y = "Company", fill = "DIVIDENDYIELD") +
+  theme_minimal()
+
+# Heatmap for ESG Score
+ggplot(ESG, aes(x = Year, y = Company, fill = ESGScore)) +
+  geom_tile() +
+  scale_fill_gradient(low = "green", high = "red") +
+  labs(title = "Heatmap of ESG Score Over Time by Company",
+       x = "Year", y = "Company", fill = "ESGScore") +
+  theme_minimal()
+
+# Heatmap for ESG Score
+ggplot(ESG, aes(x = Year, y = Company, fill = ROA)) +
+  geom_tile() +
+  scale_fill_gradient(low = "green", high = "red") +
+  labs(title = "Heatmap of Return on Assets Over Time by Company",
+       x = "Year", y = "Company", fill = "ROA") +
+  theme_minimal()
+
+# Heatmap for ESG Score
+ggplot(ESG, aes(x = Year, y = Company, fill = SocialPillarScore)) +
+  geom_tile() +
+  scale_fill_gradient(low = "green", high = "red") +
+  labs(title = "Heatmap of Social Pillar Score Over Time by Company",
+       x = "Year", y = "Company", fill = "ROA") +
+  theme_minimal()
+
+
+# Heatmap for ESG Score
+ggplot(ESG, aes(x = Year, y = Company, fill = GovernancePillarScore)) +
+  geom_tile() +
+  scale_fill_gradient(low = "green", high = "red") +
+  labs(title = "Heatmap of Governance Pillar Score Over Time by Company",
+       x = "Year", y = "Company", fill = "GovernancePillarScore") +
+  theme_minimal()
+
+# Heatmap for ESG Score
+ggplot(ESG, aes(x = Year, y = Company, fill = EnvironmentPillarScore)) +
+  geom_tile() +
+  scale_fill_gradient(low = "green", high = "red") +
+  labs(title = "Heatmap of EnvironmentPillarScore Over Time by Company",
+       x = "Year", y = "Company", fill = "EnvironmentPillarScore") +
+  theme_minimal()
+
+```
+
+```{r}
+# Now apply the log transformation
+ggplot(ESG, aes(x = Year, y = log(ROA + 1), color = Company, group = Company)) +  # Add 1 to avoid log(0)
+  geom_line(size = 1) + 
+  labs(title = "Log of Return on Assets (ROA) Over Time by Company", x = "Year", y = "Log of ROA") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+
+```
+
+```{r}
+# Check the column names of your ESG dataset
+colnames(ESG)
+
+# Check the first few rows to ensure 'Company' exists
+head(ESG)
+
+```
+
+```{r}
+# Compute group-level mean for emphasis
+library(dplyr)
+# Convert Company to a character type if needed
+ESG$Company <- as.character(ESG$Company)
+
+mean_trend <- ESG %>%
+  group_by(Year) %>%
+  summarise(mean_ROA = mean(ROA, na.rm = TRUE))
+
+# Plot with individual company trends and mean trend emphasized
+ggplot(ESG, aes(x = Year, y = ROA, group = Company)) +
+  geom_line(aes(color = Company), alpha = 0.4) +  # Make individual lines semi-transparent
+  geom_line(data = mean_trend, aes(x = Year, y = mean_ROA), color = "black", size = 1.5) +
+  labs(title = "Spaghetti Plot of ROA Trends with Mean Trend Emphasis",
+       x = "Year", y = "ROA") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+```
+```{r}
+
+library(ggalluvial)
+
+# Example for showing flow between categories of ROA over time
+ESG$ROA_Category <- cut(ESG$ROA, breaks = quantile(ESG$ROA, probs = seq(0, 1, 0.25)), include.lowest = TRUE)
+
+ggplot(ESG,
+       aes(axis1 = Year, axis2 = ROA_Category, y = ..count..)) +
+  geom_alluvium(aes(fill = ROA_Category)) +
+  geom_stratum() +
+  geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+  labs(title = "Alluvial Plot of ROA Category Flows over Time",
+       x = "Year", y = "Company Count") +
+  theme_minimal()
+
+```
+
+```{r}
+# Adjust the size of the legend for better visualization of trends
+ggplot(ESG, aes(x = Year,  y = log(ROA + 1) , color = Company, group = Company)) +
+  geom_line(size = 1) + 
+  labs(title = "Log of Return on Assets (ROA) Over Time by Company", 
+       x = "Year", 
+       y = "Log of ROA") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.title = element_text(size = 10),  # Reduce legend title size
+    legend.text = element_text(size = 8),    # Reduce legend text size
+    legend.key.size = unit(0.5, "lines")     # Reduce legend key size (color boxes)
+  )
+
+
+# Adjust the size of the legend for better visualization of trends
+ggplot(ESG, aes(x = Year,  y = log(ESGScore + 1) , color = Company, group = Company)) +
+  geom_line(size = 1) + 
+  labs(title = "Log of ESG Score Over Time by Company", 
+       x = "Year", 
+       y = "Log of ESG Score") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.title = element_text(size = 10),  # Reduce legend title size
+    legend.text = element_text(size = 8),    # Reduce legend text size
+    legend.key.size = unit(0.5, "lines")     # Reduce legend key size (color boxes)
+  )
+
+# Adjust the size of the legend for better visualization of trends
+ggplot(ESG, aes(x = Year, y = log(TotalCO2EquivalentsEmission + 1) , color = Company, group = Company)) +
+  geom_line(size = 1) + 
+  labs(title = "Log of CO2 Equivalents Emission Total) Over Time by Company", 
+       x = "Year", 
+       y = "Log of CO2 Equivalents Emission Total") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.title = element_text(size = 10),  # Reduce legend title size
+    legend.text = element_text(size = 8),    # Reduce legend text size
+    legend.key.size = unit(0.5, "lines")     # Reduce legend key size (color boxes)
+  )
+
+
+# Adjust the size of the legend for better visualization of trends
+ggplot(ESG, aes(x = Year, y = log(CSRStrategyScore + 1) , color = Company, group = Company)) +
+  geom_line(size = 1) + 
+  labs(title = "Log of  CSR Strategy Score Over Time by Company", 
+       x = "Year", 
+       y = "Log of CSRStrategyScore") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.title = element_text(size = 10),  # Reduce legend title size
+    legend.text = element_text(size = 8),    # Reduce legend text size
+    legend.key.size = unit(0.5, "lines")     # Reduce legend key size (color boxes)
+  )
+
+
+# Adjust the size of the legend for better visualization of trends
+ggplot(ESG, aes(x = Year, y = log(ROE + 1) , color = Company, group = Company)) +
+  geom_line(size = 1) + 
+  labs(title = "Log of Return on Equity (ROE) Over Time by Company", 
+       x = "Year", 
+       y = "Log of ROE") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.title = element_text(size = 10),  # Reduce legend title size
+    legend.text = element_text(size = 8),    # Reduce legend text size
+    legend.key.size = unit(0.5, "lines")     # Reduce legend key size (color boxes)
+  )
+
+
+# Adjust the size of the legend for better visualization of trends
+ggplot(ESG, aes(x = Year, y = log(DIVIDENDYIELD + 1) , color = Company, group = Company)) +
+  geom_line(size = 1) + 
+  labs(title = "Log of DIVIDEND YIELD Over Time by Company", 
+       x = "Year", 
+       y = "Log of DIVIDEND YIELD") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.title = element_text(size = 10),  # Reduce legend title size
+    legend.text = element_text(size = 8),    # Reduce legend text size
+    legend.key.size = unit(0.5, "lines")     # Reduce legend key size (color boxes)
+  )
+
+```
+
+```{r}
+# Convert your data into panel data format
+# Assuming your data frame is named 'ESG' and it contains columns 'Company' and 'Year'
+pdata <- pdata.frame(ESG, index = c("Company", "Year"))
+
+```
+
+```{r}
+# Identify duplicates in Company and Year combination
+table(index(pdata), useNA = "ifany")
+
+```
+
+```{r}
+# Identify duplicates in the original data
+duplicated_rows <- ESG[duplicated(ESG[, c("Company", "Year")]), ]
+print(duplicated_rows)
+
+```
+
+
+ROA
+```{r}
+# Fixed Effects model using plm
+ROAFixed <- plm(ROA ~ ESGScore + GovernancePillarScore + SocialPillarScore+CSRStrategyScore+HumanRightsScore+PER+MARKETVALUE, 
+                           data = pdata, 
+                           model = "within")
+
+# Summary of Fixed Effects model
+summary(ROAFixed)
+```
+```{r}
+# RANDOM Effects model using plm
+ROArandom <- plm(ROA ~ ESGScore + GovernancePillarScore + SocialPillarScore+CSRStrategyScore+HumanRightsScore+PER+MARKETVALUE, 
+                           data = pdata, 
+                           model = "random")
+
+# Summary of Fixed Effects model
+summary(ROArandom)
+```
+```{r}
+# Perform the Hausman test
+hausman_testROA <- phtest(ROAFixed, ROArandom)
+
+# Print the result of the Hausman test
+print(hausman_testROA)
+
+```
+the p-value is large (e.g., > 0.05), the Random Effects model is preferred for ROA
+
+
+
+
+
+ROE
+```{r}
+# Fixed Effects model using plm
+ROEFixed <- plm(ROE ~ ESGScore + GovernancePillarScore + SocialPillarScore+CSRStrategyScore+HumanRightsScore+PER+MARKETVALUE, 
+                           data = pdata, 
+                           model = "within")
+
+# Summary of Fixed Effects model
+summary(ROEFixed)
+```
+```{r}
+ROErandom <- plm(ROE ~ ESGScore + GovernancePillarScore + SocialPillarScore+CSRStrategyScore+HumanRightsScore+PER+MARKETVALUE, 
+                           data = pdata, 
+                           model = "random")
+
+# Summary of Fixed Effects model
+summary(ROErandom)
+```
+```{r}
+# Perform the Hausman test
+hausman_testROE <- phtest(ROEFixed, ROErandom)
+
+# Print the result of the Hausman test
+print(hausman_testROE)
+
+```
+the p-value is large (e.g., > 0.05), the Random Effects model is preferred for ROE
+
+
+
+Dividend Yield
+```{r}
+DIVIDENDYIELDrandom <- plm(ROE ~ ESGScore + GovernancePillarScore + SocialPillarScore+CSRStrategyScore+HumanRightsScore+PER+MARKETVALUE, 
+                           data = pdata, 
+                           model = "random")
+
+# Summary of Fixed Effects model
+summary(DIVIDENDYIELDrandom)
+```
+
+```{r}
+DIVIDENDYIELDFIXED <- plm(ROE ~ ESGScore + GovernancePillarScore + SocialPillarScore+CSRStrategyScore+HumanRightsScore+PER+MARKETVALUE, 
+                           data = pdata, 
+                           model = "within")
+
+# Summary of Fixed Effects model
+summary(DIVIDENDYIELDFIXED)
+```
+```{r}
+# Perform the Hausman test
+hausman_testdy <- phtest(DIVIDENDYIELDFIXED, DIVIDENDYIELDrandom)
+
+# Print the result of the Hausman test
+print(hausman_testdy)
+
+```
+the p-value is large (e.g., > 0.05), the Random Effects model is preferred for Dividend Yield
+```{r}
+# Extract residuals from the models
+residuals_ROE <- residuals(ROErandom)
+residuals_ROA <- residuals(ROArandom)
+residuals_DIVIDENDYIELD <- residuals(DIVIDENDYIELDrandom)
+
+# Shapiro-Wilk test for normality
+shapiro.test(residuals_ROE)
+shapiro.test(residuals_ROA)
+shapiro.test(residuals_DIVIDENDYIELD)
+
+# Alternatively, you can plot a Q-Q plot to visually inspect normality
+qqnorm(residuals_ROE)
+qqline(residuals_ROE)
+
+qqnorm(residuals_ROA)
+qqline(residuals_ROA)
+
+qqnorm(residuals_DIVIDENDYIELD)
+qqline(residuals_DIVIDENDYIELD)
+
+```
+
+```{r}
+# Extract fitted values and residuals from the random effects model
+fitted_ROE <- fitted(ROErandom)  # Use fitted() for plm models
+residuals_ROE <- residuals(ROErandom)
+
+
+
+```
+
+```{r}
+# Check the structure of fitted values and residuals
+str(fitted_ROE)
+str(residuals_ROE)
+
+```
+```{r}
+# If you have ggplot2 installed
+library(ggplot2)
+
+# Create a data frame for ggplot2
+residuals_data <- data.frame(
+  Fitted = fitted_ROE,
+  Residuals = residuals_ROE
+)
+
+# Use ggplot2 to plot residuals vs fitted values
+ggplot(residuals_data, aes(x = Fitted, y = Residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0, color = "red") +
+  labs(title = "Residuals vs Fitted for ROE",
+       x = "Fitted Values",
+       y = "Residuals") +
+  theme_minimal()
+
+```
+```{r}
+# If you have ggplot2 installed
+library(ggplot2)
+fitted_ROA <- fitted(ROArandom)  # Use fitted() for plm models
+residuals_ROA <- residuals(ROArandom)
+
+# Create a data frame for ggplot2
+residuals_data1 <- data.frame(
+  Fitted = fitted_ROA,
+  Residuals = residuals_ROA
+)
+
+# Use ggplot2 to plot residuals vs fitted values
+ggplot(residuals_data1, aes(x = Fitted, y = Residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0, color = "blue") +
+  labs(title = "Residuals vs Fitted for ROA random effects model",
+       x = "Fitted Values",
+       y = "Residuals") +
+  theme_minimal()
+
+```
+
+
+```{r}
+# If you have ggplot2 installed
+library(ggplot2)
+
+DIVIDENDYIELDrandom
+fitted_d <- fitted(DIVIDENDYIELDrandom)  # Use fitted() for plm models
+residuals_d <- residuals(DIVIDENDYIELDrandom)
+
+# Create a data frame for ggplot2
+residuals_data <- data.frame(
+  Fitted = fitted_d,
+  Residuals = residuals_d
+)
+
+# Use ggplot2 to plot residuals vs fitted values
+ggplot(residuals_data, aes(x = Fitted, y = Residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0, color = "purple") +
+  labs(title = "Residuals vs Fitted for Dividend Yield Random Effects Model",
+       x = "Fitted Values",
+       y = "Residuals") +
+  theme_minimal()
+
+```
+
+```{r}
+
+
+# Load library
+library(car)
+
+# Calculate VIF for the independent variables in the model
+vif(ROErandom)  # For ROE model
+vif(ROArandom)  # For ROA model
+vif(DIVIDENDYIELDrandom)  # For Dividend Yield model
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
